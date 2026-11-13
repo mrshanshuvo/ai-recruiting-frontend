@@ -4,6 +4,8 @@ import { JobConfirmationCard } from './JobConfirmationCard';
 import { SourcingConfirmationCard } from './SourcingConfirmationCard';
 import { CandidateTableCard } from './CandidateTableCard';
 import { CampaignPreviewCard } from './CampaignPreviewCard';
+import { BookingLinkCard } from './BookingLinkCard';
+import { StatusUpdateCard } from './StatusUpdateCard';
 
 interface CardHostProps {
   cardPart: ICardPart;
@@ -45,6 +47,24 @@ export const CardHost: React.FC<CardHostProps> = ({ cardPart, sourcingProgress }
     case 'campaign_preview':
       return (
         <CampaignPreviewCard
+          actionId={card.actionId}
+          status={card.status}
+          payload={card.payload as any}
+        />
+      );
+
+    case 'booking_link':
+      return (
+        <BookingLinkCard
+          actionId={card.actionId}
+          status={card.status}
+          payload={card.payload as any}
+        />
+      );
+
+    case 'status_update':
+      return (
+        <StatusUpdateCard
           actionId={card.actionId}
           status={card.status}
           payload={card.payload as any}
