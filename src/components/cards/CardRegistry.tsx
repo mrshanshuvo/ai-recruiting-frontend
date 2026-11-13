@@ -7,6 +7,7 @@ import { CampaignPreviewCard } from './CampaignPreviewCard';
 import { BookingLinkCard } from './BookingLinkCard';
 import { StatusUpdateCard } from './StatusUpdateCard';
 import { ReplyDraftCard } from './ReplyDraftCard';
+import { StatsSummaryCard } from './StatsSummaryCard';
 
 interface CardHostProps {
   cardPart: ICardPart;
@@ -75,6 +76,15 @@ export const CardHost: React.FC<CardHostProps> = ({ cardPart, sourcingProgress }
     case 'reply_draft':
       return (
         <ReplyDraftCard
+          actionId={card.actionId}
+          status={card.status}
+          payload={card.payload as any}
+        />
+      );
+
+    case 'stats_summary':
+      return (
+        <StatsSummaryCard
           actionId={card.actionId}
           status={card.status}
           payload={card.payload as any}

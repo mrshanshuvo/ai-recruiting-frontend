@@ -6,6 +6,7 @@ import { CandidatesPage } from './pages/CandidatesPage';
 import { MockBookingPage } from './pages/MockBookingPage';
 import { JobsPage } from './pages/JobsPage';
 import { JobDetailPage } from './pages/JobDetailPage';
+import { JobDashboardPage } from './pages/JobDashboardPage';
 
 export const App: React.FC = () => {
   return (
@@ -80,6 +81,7 @@ export const App: React.FC = () => {
                     <Route path="/candidates" element={<CandidatesPage />} />
                     <Route path="/jobs" element={<JobsPage />} />
                     <Route path="/jobs/:id" element={<JobDetailPage />} />
+                    <Route path="/jobs/:id/dashboard" element={<JobDashboardPage />} />
                   </Routes>
                 </main>
               </div>

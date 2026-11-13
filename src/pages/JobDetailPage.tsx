@@ -4,6 +4,7 @@ import {
   Briefcase,
   Users,
   Activity,
+  BarChart3,
   ArrowLeft,
   MessageSquare,
   Search,
@@ -334,15 +335,25 @@ export const JobDetailPage: React.FC = () => {
           </div>
         </div>
 
-        {job?.conversationId && (
+        <div className="flex items-center space-x-2">
           <Link
-            to={`/chat/${job.conversationId}`}
-            className="inline-flex items-center px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-sm transition"
+            to={`/jobs/${job?._id || id}/dashboard`}
+            className="inline-flex items-center px-3.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold shadow-sm transition"
           >
-            <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
-            Recruiter Chat Feed
+            <BarChart3 className="w-3.5 h-3.5 mr-1.5" />
+            Job Dashboard & Stats
           </Link>
-        )}
+
+          {job?.conversationId && (
+            <Link
+              to={`/chat/${job.conversationId}`}
+              className="inline-flex items-center px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-sm transition"
+            >
+              <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
+              Recruiter Chat Feed
+            </Link>
+          )}
+        </div>
       </div>
 
       {isLoading ? (

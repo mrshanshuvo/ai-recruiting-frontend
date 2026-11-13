@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   Briefcase,
   Users,
+  BarChart3,
   MessageSquare,
   ArrowRight,
   MapPin,
@@ -28,6 +29,12 @@ interface Job {
   status: string;
   conversationId?: string;
   createdAt?: string;
+  metrics?: {
+    candidates: number;
+    contacted: number;
+    meetings: number;
+    hires: number;
+  };
 }
 
 export const JobsPage: React.FC = () => {
@@ -146,23 +153,53 @@ export const JobsPage: React.FC = () => {
                     </div>
                   )}
                 </div>
+
+                {/* Per-job KPI stats pill bar */}
+                <div className="mt-3.5 pt-3 border-t border-slate-100 grid grid-cols-4 gap-1.5 text-center">
+                  <div className="bg-slate-50 p-1.5 rounded border border-slate-100">
+                    <div className="text-[10px] text-slate-400 font-medium uppercase">Candidates</div>
+                    <div className="text-xs font-bold text-slate-800 mt-0.5">{job.metrics?.candidates ?? 0}</div>
+                  </div>
+                  <div className="bg-indigo-50/50 p-1.5 rounded border border-indigo-100/60">
+                    <div className="text-[10px] text-indigo-500 font-medium uppercase">Contacted</div>
+                    <div className="text-xs font-bold text-indigo-700 mt-0.5">{job.metrics?.contacted ?? 0}</div>
+                  </div>
+                  <div className="bg-teal-50/50 p-1.5 rounded border border-teal-100/60">
+                    <div className="text-[10px] text-teal-600 font-medium uppercase">Meetings</div>
+                    <div className="text-xs font-bold text-teal-700 mt-0.5">{job.metrics?.meetings ?? 0}</div>
+                  </div>
+                  <div className="bg-emerald-50/50 p-1.5 rounded border border-emerald-100/60">
+                    <div className="text-[10px] text-emerald-600 font-medium uppercase">Hires</div>
+                    <div className="text-xs font-bold text-emerald-700 mt-0.5">{job.metrics?.hires ?? 0}</div>
+                  </div>
+                </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-                <button
-                  type="button"
-                  onClick={() => navigate(`/jobs/${job._id}`)}
-                  className="inline-flex items-center px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-semibold transition"
-                >
-                  <Users className="w-3.5 h-3.5 mr-1 text-slate-600" />
-                  Dashboard & Pipeline
-                </button>
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-1.5">
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/jobs/${job._id}/dashboard`)}
+                    className="inline-flex items-center px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold transition"
+                  >
+                    <BarChart3 className="w-3.5 h-3.5 mr-1" />
+                    Dashboard
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/jobs/${job._id}`)}
+                    className="inline-flex items-center px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-semibold transition"
+                  >
+                    <Users className="w-3.5 h-3.5 mr-1 text-slate-600" />
+                    Pipeline
+                  </button>
+                </div>
                 {job.conversationId && (
                   <Link
                     to={`/chat/${job.conversationId}`}
-                    className="inline-flex items-center px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold transition"
+                    className="inline-flex items-center px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition"
                   >
-                    <MessageSquare className="w-3.5 h-3.5 mr-1" />
+                    <MessageSquare className="w-3.5 h-3.5 mr-1 text-slate-500" />
                     Chat
                   </Link>
                 )}
