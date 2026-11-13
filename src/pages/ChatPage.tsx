@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { PlusCircle, Loader2, RefreshCw } from 'lucide-react';
 import { createConversation, sendMessage, API_BASE_URL } from '../api/client';
 import { useConversationStream } from '../hooks/useConversationStream';
@@ -8,6 +8,7 @@ import { ChatInputBar } from '../components/chat/ChatInputBar';
 
 export const ChatPage: React.FC = () => {
   const { id: routeConversationId } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -15,7 +16,8 @@ export const ChatPage: React.FC = () => {
   useEffect(() => {
     async function initSession() {
       if (!routeConversationId) {
-        const savedId = localStorage.getItem('conversationId');
+        const queryConvId = searchParams.get('conversationId');
+        const savedId = queryConvId || localStorage.getItem('conversationId');
         if (savedId) {
           navigate(`/chat/${savedId}`, { replace: true });
         } else {
@@ -33,7 +35,7 @@ export const ChatPage: React.FC = () => {
     }
 
     initSession();
-  }, [routeConversationId, navigate]);
+  }, [routeConversationId, searchParams, navigate]);
 
   // 2. Stream and messages hook
   const { messages, setMessages, isLoading, sourcingProgress, reloadHistory } =

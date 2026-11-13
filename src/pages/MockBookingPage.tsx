@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Calendar, Clock, CheckCircle2, Building, User, Mail, AlertCircle } from 'lucide-react';
+import { API_BASE_URL } from '../api/client';
 
 interface BookingData {
   candidate: {
@@ -34,7 +35,7 @@ export const MockBookingPage: React.FC = () => {
       if (!token) return;
       try {
         setLoading(true);
-        const res = await fetch(`/api/booking/${token}`);
+        const res = await fetch(`${API_BASE_URL}/api/booking/${token}`);
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
           throw new Error(errData.error?.message || 'Invalid or expired booking link');
@@ -59,7 +60,7 @@ export const MockBookingPage: React.FC = () => {
     try {
       setSubmitting(true);
       setSelectedSlot(slot);
-      const res = await fetch(`/api/booking/${token}/slot`, {
+      const res = await fetch(`${API_BASE_URL}/api/booking/${token}/slot`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ slot }),
@@ -190,3 +191,4 @@ export const MockBookingPage: React.FC = () => {
     </div>
   );
 };
+

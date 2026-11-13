@@ -9,8 +9,49 @@ import {
   FileSpreadsheet,
   HelpCircle,
   Loader2,
+  MessageSquare,
+  Send,
+  Clock,
 } from 'lucide-react';
-import { API_BASE_URL } from '../api/client';
+import { API_BASE_URL, simulateReply, updateCandidateStatus } from '../api/client';
+
+const ALLOWED_TRANSITIONS: Record<string, string[]> = {
+  Sourced: ['Accepted', 'Rejected'],
+  Accepted: ['Contacted', 'Rejected'],
+  Contacted: ['Replied', 'Unsubscribed'],
+  Replied: ['Interested', 'Not interested', 'Unsubscribed'],
+  Interested: ['Meeting booked', 'Rejected', 'Unsubscribed'],
+  'Not interested': ['Rejected', 'Unsubscribed'],
+  'Meeting booked': ['Interviewed', 'Rejected', 'Unsubscribed'],
+  Interviewed: ['Shortlisted', 'Rejected', 'Unsubscribed'],
+  Shortlisted: ['Hired', 'Rejected', 'Unsubscribed'],
+  Hired: ['Unsubscribed'],
+  Rejected: ['Unsubscribed'],
+  Unsubscribed: [],
+};
+
+const PRESET_REPLIES = [
+  {
+    label: 'Interested',
+    badge: 'bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100',
+    text: "Hi, thanks for reaching out! The role at Aironauts sounds very interesting. I'd love to learn more about what your team is building.",
+  },
+  {
+    label: 'Question',
+    badge: 'bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100',
+    text: 'Could you share more details about the salary range, tech stack, and remote work policy for this role?',
+  },
+  {
+    label: 'Wants a meeting',
+    badge: 'bg-indigo-50 text-indigo-700 border-indigo-300 hover:bg-indigo-100',
+    text: 'I would be glad to speak with you. Could you send over a link to schedule a 15-minute chat on my calendar?',
+  },
+  {
+    label: 'Unsubscribe',
+    badge: 'bg-rose-50 text-rose-700 border-rose-300 hover:bg-rose-100',
+    text: 'Please unsubscribe me and remove my email from your recruitment outreach list.',
+  },
+];
 
 interface Candidate {
   _id: string;
@@ -53,6 +94,90 @@ export const CandidatesPage: React.FC = () => {
   // CSV Upload status
   const [isUploading, setIsUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
+
+  // Simulation modal state (DEC-15 / F4)
+  const [simulatingCandidate, setSimulatingCandidate] = useState<Candidate | null>(null);
+  const [simulateText, setSimulateText] = useState('');
+  const [isSubmittingReply, setIsSubmittingReply] = useState(false);
+
+  // Candidate drawer activity & status
+  const [candidateActivities, setCandidateActivities] = useState<any[]>([]);
+  const [isLoadingActivity, setIsLoadingActivity] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [drawerTargetStatus, setDrawerTargetStatus] = useState('');
+  const [drawerReason, setDrawerReason] = useState('');
+
+  const handleSelectCandidate = async (cand: Candidate) => {
+    setSelectedCandidate(cand);
+    setDrawerTargetStatus('');
+    setDrawerReason('');
+    try {
+      setIsLoadingActivity(true);
+      const res = await fetch(`${API_BASE_URL}/api/jobs/${cand.jobId}/activity?candidateId=${cand._id}&limit=50`);
+      const data = await res.json();
+      if (data.success) {
+        setCandidateActivities(data.activities || []);
+      }
+    } catch (err) {
+      console.error('Failed to load candidate activity:', err);
+    } finally {
+      setIsLoadingActivity(false);
+    }
+  };
+
+  const handleDirectStatusChange = async (candidateId: string, newStatus: string, reason?: string) => {
+    try {
+      setIsUpdatingStatus(true);
+      const res = await updateCandidateStatus(candidateId, newStatus, reason || 'Recruiter status update via candidate list');
+      if (res.success) {
+        setCandidates((prev) =>
+          prev.map((c) => (c._id === candidateId ? { ...c, status: res.newStatus } : c))
+        );
+        if (selectedCandidate && selectedCandidate._id === candidateId) {
+          setSelectedCandidate((prev) => (prev ? { ...prev, status: res.newStatus } : null));
+          const actRes = await fetch(
+            `${API_BASE_URL}/api/jobs/${selectedCandidate.jobId}/activity?candidateId=${candidateId}&limit=50`
+          );
+          const actData = await actRes.json();
+          if (actData.success) setCandidateActivities(actData.activities || []);
+        }
+      }
+    } catch (err: any) {
+      alert(`Status transition error: ${err.message || 'Operation failed'}`);
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  const handleOpenSimulate = (cand: Candidate) => {
+    setSimulatingCandidate(cand);
+    setSimulateText(PRESET_REPLIES[0].text);
+  };
+
+  const handleSubmitSimulateReply = async () => {
+    if (!simulatingCandidate || !simulateText.trim()) return;
+    setIsSubmittingReply(true);
+    try {
+      await simulateReply({
+        candidateId: simulatingCandidate._id,
+        message: simulateText.trim(),
+      });
+      setSimulatingCandidate(null);
+      setTimeout(async () => {
+        try {
+          const candRes = await fetch(`${API_BASE_URL}/api/candidates`);
+          const candData = await candRes.json();
+          if (candData.success && candData.candidates) {
+            setCandidates(candData.candidates);
+          }
+        } catch {}
+      }, 1500);
+    } catch (err: any) {
+      alert(err.message || 'Failed to simulate candidate reply');
+    } finally {
+      setIsSubmittingReply(false);
+    }
+  };
 
   // Fetch Jobs on mount
   useEffect(() => {
@@ -363,14 +488,50 @@ export const CandidatesPage: React.FC = () => {
                           {c.status}
                         </span>
                       </td>
-                      <td className="px-5 py-3.5 text-right">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedCandidate(c)}
-                          className="px-3 py-1 bg-white hover:bg-slate-100 border border-slate-300 rounded text-xs font-medium text-slate-700 transition"
-                        >
-                          View Details
-                        </button>
+                      <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                        <div className="inline-flex items-center gap-2">
+                          {(ALLOWED_TRANSITIONS[c.status] || []).length > 0 && (
+                            <select
+                              defaultValue=""
+                              onChange={(e) => {
+                                if (e.target.value) {
+                                  handleDirectStatusChange(c._id, e.target.value);
+                                  e.target.value = '';
+                                }
+                              }}
+                              disabled={isUpdatingStatus}
+                              className="px-2 py-1 bg-white border border-slate-300 rounded text-xs text-slate-700 font-medium focus:outline-none focus:border-indigo-500"
+                            >
+                              <option value="" disabled>
+                                Move to...
+                              </option>
+                              {(ALLOWED_TRANSITIONS[c.status] || []).map((target) => (
+                                <option key={target} value={target}>
+                                  {target}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+
+                          {c.status === 'Contacted' && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenSimulate(c)}
+                              className="inline-flex items-center px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded text-xs font-semibold transition"
+                              title="Simulate Inbound Candidate Reply"
+                            >
+                              <MessageSquare className="w-3.5 h-3.5 mr-1" />
+                              Simulate reply
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleSelectCandidate(c)}
+                            className="px-3 py-1 bg-white hover:bg-slate-100 border border-slate-300 rounded text-xs font-medium text-slate-700 transition"
+                          >
+                            View Details
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -485,6 +646,178 @@ export const CandidatesPage: React.FC = () => {
                   </a>
                 </div>
               )}
+
+              {/* Status Update Control (DEC-16 / DEC-18) */}
+              <div className="pt-3 border-t border-slate-100 space-y-2">
+                <span className="font-semibold text-slate-900 uppercase tracking-wider block">
+                  Update Candidate Pipeline Stage
+                </span>
+                <div className="p-3 bg-indigo-50/50 rounded-lg border border-indigo-100 space-y-2">
+                  <div className="text-[11px] text-slate-600">
+                    Current stage: <strong className="text-indigo-700">{selectedCandidate.status}</strong>
+                  </div>
+                  <select
+                    value={drawerTargetStatus}
+                    onChange={(e) => setDrawerTargetStatus(e.target.value)}
+                    className="w-full p-2 bg-white border border-slate-300 rounded text-xs text-slate-800 focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="">-- Choose next status --</option>
+                    {(ALLOWED_TRANSITIONS[selectedCandidate.status] || []).map((st) => (
+                      <option key={st} value={st}>
+                        {st}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    placeholder="Rationale for transition (optional)..."
+                    value={drawerReason}
+                    onChange={(e) => setDrawerReason(e.target.value)}
+                    className="w-full p-2 bg-white border border-slate-300 rounded text-xs text-slate-800 focus:outline-none focus:border-indigo-500"
+                  />
+                  <button
+                    type="button"
+                    disabled={!drawerTargetStatus || isUpdatingStatus}
+                    onClick={() => {
+                      if (drawerTargetStatus) {
+                        handleDirectStatusChange(selectedCandidate._id, drawerTargetStatus, drawerReason);
+                      }
+                    }}
+                    className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white rounded text-xs font-semibold transition"
+                  >
+                    {isUpdatingStatus ? 'Applying Transition...' : 'Confirm Stage Transition'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Candidate Audit Timeline (DEC-18) */}
+              <div className="pt-3 border-t border-slate-100 space-y-2">
+                <span className="font-semibold text-slate-900 uppercase tracking-wider block flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-indigo-600" />
+                  Candidate Audit Timeline (DEC-18)
+                </span>
+                {isLoadingActivity ? (
+                  <div className="p-4 text-center text-slate-400">
+                    <Loader2 className="w-4 h-4 animate-spin mx-auto mb-1 text-indigo-600" />
+                    <span>Loading timeline...</span>
+                  </div>
+                ) : candidateActivities.length === 0 ? (
+                  <div className="p-3 text-center text-slate-400 bg-slate-50 rounded">
+                    No activity recorded yet for this candidate.
+                  </div>
+                ) : (
+                  <div className="space-y-2 border-l-2 border-indigo-200 pl-3">
+                    {candidateActivities.map((act) => (
+                      <div key={act._id} className="relative py-1">
+                        <div className="text-[11px] font-bold text-slate-800">
+                          {act.action} &bull; <span className="font-mono text-slate-500">{act.actor}</span>
+                        </div>
+                        {act.previousStatus && act.newStatus && (
+                          <div className="text-[11px] text-slate-600">
+                            {act.previousStatus} &rarr; <strong>{act.newStatus}</strong>
+                          </div>
+                        )}
+                        {act.details?.reason && (
+                          <div className="text-[10px] text-slate-500 italic">{act.details.reason}</div>
+                        )}
+                        <div className="text-[10px] text-slate-400">
+                          {new Date(act.timestamp).toLocaleString()}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Simulate Reply Modal (F4 / DEC-15) */}
+      {simulatingCandidate && (
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full border border-slate-200 p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                  <MessageSquare className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900">Simulate Inbound Reply</h4>
+                  <p className="text-xs text-slate-500">
+                    Candidate: <strong>{simulatingCandidate.fullName}</strong> ({simulatingCandidate.email || 'no email'})
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSimulatingCandidate(null)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Preset Chips */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-2">
+                Select Preset Reply:
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {PRESET_REPLIES.map((p) => (
+                  <button
+                    key={p.label}
+                    type="button"
+                    onClick={() => setSimulateText(p.text)}
+                    className={`px-2.5 py-1 rounded-full text-xs font-semibold border transition ${p.badge}`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Editable Body */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1">
+                Candidate Email Text:
+              </label>
+              <textarea
+                rows={4}
+                value={simulateText}
+                onChange={(e) => setSimulateText(e.target.value)}
+                className="w-full text-xs border border-slate-300 rounded-lg p-3 text-slate-800 font-sans focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                placeholder="Enter candidate email text..."
+              />
+            </div>
+
+            <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setSimulatingCandidate(null)}
+                disabled={isSubmittingReply}
+                className="px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmitSimulateReply}
+                disabled={isSubmittingReply || !simulateText.trim()}
+                className="inline-flex items-center px-4 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 rounded-lg shadow-sm transition"
+              >
+                {isSubmittingReply ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-3.5 h-3.5 mr-1.5" />
+                    Submit Simulated Reply
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>

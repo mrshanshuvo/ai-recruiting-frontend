@@ -6,6 +6,7 @@ import { CandidateTableCard } from './CandidateTableCard';
 import { CampaignPreviewCard } from './CampaignPreviewCard';
 import { BookingLinkCard } from './BookingLinkCard';
 import { StatusUpdateCard } from './StatusUpdateCard';
+import { ReplyDraftCard } from './ReplyDraftCard';
 
 interface CardHostProps {
   cardPart: ICardPart;
@@ -65,6 +66,15 @@ export const CardHost: React.FC<CardHostProps> = ({ cardPart, sourcingProgress }
     case 'status_update':
       return (
         <StatusUpdateCard
+          actionId={card.actionId}
+          status={card.status}
+          payload={card.payload as any}
+        />
+      );
+
+    case 'reply_draft':
+      return (
+        <ReplyDraftCard
           actionId={card.actionId}
           status={card.status}
           payload={card.payload as any}

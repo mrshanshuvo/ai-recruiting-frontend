@@ -4,6 +4,8 @@ import { Bot, Briefcase, Users } from 'lucide-react';
 import { ChatPage } from './pages/ChatPage';
 import { CandidatesPage } from './pages/CandidatesPage';
 import { MockBookingPage } from './pages/MockBookingPage';
+import { JobsPage } from './pages/JobsPage';
+import { JobDetailPage } from './pages/JobDetailPage';
 
 export const App: React.FC = () => {
   return (
@@ -76,19 +78,8 @@ export const App: React.FC = () => {
                     <Route path="/" element={<ChatPage />} />
                     <Route path="/chat/:id" element={<ChatPage />} />
                     <Route path="/candidates" element={<CandidatesPage />} />
-                    <Route
-                      path="/jobs"
-                      element={
-                        <div className="p-6 max-w-4xl mx-auto">
-                          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                            <h2 className="text-xl font-bold text-slate-800 mb-4">Jobs Overview</h2>
-                            <p className="text-slate-500 text-sm">
-                              No jobs created yet. Start by pasting a job description in the recruiter chat.
-                            </p>
-                          </div>
-                        </div>
-                      }
-                    />
+                    <Route path="/jobs" element={<JobsPage />} />
+                    <Route path="/jobs/:id" element={<JobDetailPage />} />
                   </Routes>
                 </main>
               </div>

@@ -134,3 +134,24 @@ export async function updateCandidateStatus(
 
   return res.json();
 }
+
+export async function simulateReply(data: {
+  candidateId: string;
+  message: string;
+}): Promise<{ success: boolean; jobId: string; candidateId: string; message: string }> {
+  const res = await fetch(`${API_BASE_URL}/simulate-reply`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      candidateId: data.candidateId,
+      message: data.message,
+    }),
+  });
+
+  if (!res.ok) {
+    const errorJson = await res.json().catch(() => ({}));
+    throw new Error(errorJson.error?.message || `Failed to simulate reply: ${res.statusText}`);
+  }
+
+  return res.json();
+}
