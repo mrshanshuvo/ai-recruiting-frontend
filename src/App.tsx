@@ -1,13 +1,14 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { Bot, Briefcase } from 'lucide-react';
+import { ChatPage } from './pages/ChatPage';
 
 export const App: React.FC = () => {
   return (
     <Router>
-      <div className="flex h-screen bg-slate-50 text-slate-900">
+      <div className="flex h-screen bg-slate-50 text-slate-900 overflow-hidden">
         {/* Sidebar */}
-        <aside className="w-64 bg-white border-r border-slate-200 flex flex-col">
+        <aside className="w-64 bg-white border-r border-slate-200 flex flex-col shrink-0">
           <div className="p-4 border-b border-slate-200 flex items-center space-x-3">
             <div className="p-2 bg-indigo-600 rounded-lg text-white">
               <Bot className="w-6 h-6" />
@@ -41,46 +42,35 @@ export const App: React.FC = () => {
         </aside>
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col h-full overflow-hidden">
           {/* Header */}
-          <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6">
+          <header className="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0">
             <div className="flex items-center space-x-4">
-              <span className="text-sm font-medium text-slate-600">Active Mode:</span>
+              <span className="text-sm font-medium text-slate-600">Active Workspace:</span>
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-                Single Recruiter Workspace
+                Single Recruiter Mode
               </span>
             </div>
-            <div className="text-sm text-slate-500">
-              Backend Status: <span className="text-emerald-600 font-medium">Ready</span>
+            <div className="text-xs text-slate-500">
+              Backend Status: <span className="text-emerald-600 font-semibold">Ready</span>
             </div>
           </header>
 
           {/* Dynamic Content */}
-          <main className="flex-1 overflow-auto p-6">
+          <main className="flex-1 overflow-hidden">
             <Routes>
-              <Route
-                path="/"
-                element={
-                  <div className="max-w-4xl mx-auto bg-white rounded-xl border border-slate-200 shadow-sm p-8 text-center">
-                    <div className="inline-flex p-4 bg-indigo-50 text-indigo-600 rounded-full mb-4">
-                      <Bot className="w-10 h-10" />
-                    </div>
-                    <h2 className="text-2xl font-bold text-slate-800 mb-2">Welcome to AI Recruiting Co-Worker</h2>
-                    <p className="text-slate-600 max-w-md mx-auto mb-6">
-                      Your autonomous recruitment partner. Create jobs from job descriptions, discover qualified candidates, run outreach campaigns, and manage the complete hiring lifecycle.
-                    </p>
-                    <div className="inline-flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium shadow-sm hover:bg-indigo-700 transition">
-                      Chat Workspace Ready
-                    </div>
-                  </div>
-                }
-              />
+              <Route path="/" element={<ChatPage />} />
+              <Route path="/chat/:id" element={<ChatPage />} />
               <Route
                 path="/jobs"
                 element={
-                  <div className="max-w-4xl mx-auto bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-                    <h2 className="text-xl font-bold text-slate-800 mb-4">Jobs Overview</h2>
-                    <p className="text-slate-500 text-sm">No jobs created yet. Start by pasting a job description in the chat.</p>
+                  <div className="p-6 max-w-4xl mx-auto">
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+                      <h2 className="text-xl font-bold text-slate-800 mb-4">Jobs Overview</h2>
+                      <p className="text-slate-500 text-sm">
+                        No jobs created yet. Start by pasting a job description in the recruiter chat.
+                      </p>
+                    </div>
                   </div>
                 }
               />
