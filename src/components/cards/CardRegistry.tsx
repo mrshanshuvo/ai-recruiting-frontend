@@ -3,6 +3,7 @@ import { ICardPart, SourcingProgress } from '../../types/chat';
 import { JobConfirmationCard } from './JobConfirmationCard';
 import { SourcingConfirmationCard } from './SourcingConfirmationCard';
 import { CandidateTableCard } from './CandidateTableCard';
+import { CampaignPreviewCard } from './CampaignPreviewCard';
 
 interface CardHostProps {
   cardPart: ICardPart;
@@ -35,6 +36,15 @@ export const CardHost: React.FC<CardHostProps> = ({ cardPart, sourcingProgress }
     case 'candidate_table':
       return (
         <CandidateTableCard
+          actionId={card.actionId}
+          status={card.status}
+          payload={card.payload as any}
+        />
+      );
+
+    case 'campaign_preview':
+      return (
+        <CampaignPreviewCard
           actionId={card.actionId}
           status={card.status}
           payload={card.payload as any}

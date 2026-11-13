@@ -174,9 +174,10 @@ export const CandidateTableCard: React.FC<CandidateTableCardProps> = ({
       title={
         actionId
           ? `Bulk Candidate Review: ${decision.toUpperCase()} (${candidates.length})`
-          : `Candidate Review: ${jobTitle}`
+          : `Candidates: ${jobTitle}`
       }
       status={status}
+      badgeLabel={!actionId ? 'Browse Mode' : undefined}
     >
       <div className="space-y-4">
         {payload.reason && (
@@ -259,36 +260,49 @@ export const CandidateTableCard: React.FC<CandidateTableCardProps> = ({
 
                     <td className="px-3 py-2.5 text-right whitespace-nowrap">
                       <div className="inline-flex items-center gap-1">
-                        <button
-                          type="button"
-                          disabled={isLoading || cand.status === 'Accepted'}
-                          onClick={() => handleRowStatusChange(cand.candidateId, 'Accepted')}
-                          className={`p-1.5 rounded transition-colors ${
-                            cand.status === 'Accepted'
-                              ? 'bg-emerald-50 text-emerald-600 opacity-60 cursor-default'
-                              : 'text-slate-500 hover:bg-emerald-50 hover:text-emerald-700'
-                          }`}
-                          title="Accept Candidate"
-                        >
-                          {isLoading ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
+                        {/* Accept button: valid next action only from 'Sourced' */}
+                        {cand.status === 'Sourced' ? (
+                          <button
+                            type="button"
+                            disabled={isLoading}
+                            onClick={() => handleRowStatusChange(cand.candidateId, 'Accepted')}
+                            className="p-1.5 rounded transition-colors text-slate-500 hover:bg-emerald-50 hover:text-emerald-700"
+                            title="Accept Candidate"
+                          >
+                            {isLoading ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Check className="w-3.5 h-3.5" />
+                            )}
+                          </button>
+                        ) : cand.status === 'Accepted' ? (
+                          <span
+                            className="p-1.5 rounded text-emerald-600 bg-emerald-50 cursor-default"
+                            title="Accepted"
+                          >
                             <Check className="w-3.5 h-3.5" />
-                          )}
-                        </button>
-                        <button
-                          type="button"
-                          disabled={isLoading || cand.status === 'Rejected'}
-                          onClick={() => handleRowStatusChange(cand.candidateId, 'Rejected')}
-                          className={`p-1.5 rounded transition-colors ${
-                            cand.status === 'Rejected'
-                              ? 'bg-rose-50 text-rose-600 opacity-60 cursor-default'
-                              : 'text-slate-500 hover:bg-rose-50 hover:text-rose-700'
-                          }`}
-                          title="Reject Candidate"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
+                          </span>
+                        ) : null}
+
+                        {/* Reject button: valid next action except from terminal states */}
+                        {!['Rejected', 'Hired', 'Unsubscribed'].includes(cand.status) ? (
+                          <button
+                            type="button"
+                            disabled={isLoading}
+                            onClick={() => handleRowStatusChange(cand.candidateId, 'Rejected')}
+                            className="p-1.5 rounded transition-colors text-slate-500 hover:bg-rose-50 hover:text-rose-700"
+                            title="Reject Candidate"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        ) : cand.status === 'Rejected' ? (
+                          <span
+                            className="p-1.5 rounded text-rose-600 bg-rose-50 cursor-default"
+                            title="Rejected"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </span>
+                        ) : null}
                       </div>
                     </td>
                   </tr>

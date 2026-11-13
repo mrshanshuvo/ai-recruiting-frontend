@@ -5,11 +5,19 @@ import { CardStatus } from '../../types/chat';
 interface CardWrapperProps {
   title: string;
   status: CardStatus;
+  badgeLabel?: string;
   children: React.ReactNode;
 }
 
-export const CardWrapper: React.FC<CardWrapperProps> = ({ title, status, children }) => {
+export const CardWrapper: React.FC<CardWrapperProps> = ({ title, status, badgeLabel, children }) => {
   const getBadge = () => {
+    if (badgeLabel) {
+      return (
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+          {badgeLabel}
+        </span>
+      );
+    }
     switch (status) {
       case 'in_progress':
         return (

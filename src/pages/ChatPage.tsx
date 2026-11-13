@@ -63,6 +63,7 @@ export const ChatPage: React.FC = () => {
 
     try {
       await sendMessage(routeConversationId, text);
+      await reloadHistory();
     } catch (err) {
       console.error('[ChatPage] Failed to send message:', err);
     }
