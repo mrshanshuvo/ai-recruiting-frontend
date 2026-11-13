@@ -263,3 +263,4 @@ export const SourcingConfirmationCard: React.FC<SourcingConfirmationCardProps> =
     </CardWrapper>
   );
 };
+
