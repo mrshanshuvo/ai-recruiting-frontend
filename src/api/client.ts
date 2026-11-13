@@ -54,9 +54,64 @@ export async function sendMessage(conversationId: string, text: string): Promise
   });
 
   if (!res.ok) {
-    throw new Error(`Failed to send message: ${res.statusText}`);
+    const errorJson = await res.json().catch(() => ({}));
+    const message = errorJson.error?.message || res.statusText;
+    throw new Error(message);
   }
 
   return res.json();
 }
 
+export async function confirmAction(
+  actionId: string,
+  modifiedPayload?: Record<string, any>
+): Promise<{ success: boolean; actionId: string; status: string; result?: any }> {
+  const res = await fetch(`${API_BASE_URL}/api/actions/${actionId}/confirm`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ modifiedPayload }),
+  });
+
+  if (!res.ok) {
+    const errorJson = await res.json().catch(() => ({}));
+    throw new Error(errorJson.error?.message || `Failed to confirm action: ${res.statusText}`);
+  }
+
+  return res.json();
+}
+
+export async function cancelAction(
+  actionId: string,
+  reason?: string
+): Promise<{ success: boolean; actionId: string; status: string }> {
+  const res = await fetch(`${API_BASE_URL}/api/actions/${actionId}/cancel`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reason }),
+  });
+
+  if (!res.ok) {
+    const errorJson = await res.json().catch(() => ({}));
+    throw new Error(errorJson.error?.message || `Failed to cancel action: ${res.statusText}`);
+  }
+
+  return res.json();
+}
+
+export async function patchActionPayload(
+  actionId: string,
+  editedPayload: Record<string, any>
+): Promise<{ success: boolean; actionId: string; status: string }> {
+  const res = await fetch(`${API_BASE_URL}/api/actions/${actionId}/payload`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ editedPayload }),
+  });
+
+  if (!res.ok) {
+    const errorJson = await res.json().catch(() => ({}));
+    throw new Error(errorJson.error?.message || `Failed to autosave payload: ${res.statusText}`);
+  }
+
+  return res.json();
+}

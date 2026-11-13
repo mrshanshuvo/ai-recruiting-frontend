@@ -1,6 +1,7 @@
 import React from 'react';
 import { Bot, User } from 'lucide-react';
-import { Message } from '../../types/chat';
+import { Message, ICardPart } from '../../types/chat';
+import { CardHost } from '../cards/CardRegistry';
 
 interface MessageBubbleProps {
   message: Message;
@@ -22,7 +23,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
         </div>
 
         {/* Message Content */}
-        <div className="space-y-3">
+        <div className="space-y-3 flex-1">
           {message.parts.map((part, index) => {
             if (part.type === 'text') {
               return (
@@ -30,7 +31,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
                   key={index}
                   className={`px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
                     isUser
-                      ? 'bg-indigo-600 text-white rounded-tr-none shadow-sm'
+                      ? 'bg-indigo-600 text-white rounded-tr-none shadow-sm inline-block'
                       : 'bg-white text-slate-800 rounded-tl-none border border-slate-200 shadow-sm'
                   }`}
                 >
@@ -40,19 +41,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             }
 
             if (part.type === 'card') {
-              return (
-                <div
-                  key={index}
-                  className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm"
-                >
-                  <div className="text-xs font-semibold uppercase text-indigo-600 mb-2">
-                    Card: {part.card.cardType} ({part.card.status})
-                  </div>
-                  <pre className="text-xs bg-slate-50 p-2 rounded overflow-x-auto text-slate-700">
-                    {JSON.stringify(part.card.payload, null, 2)}
-                  </pre>
-                </div>
-              );
+              return <CardHost key={index} cardPart={part as ICardPart} />;
             }
 
             return null;
@@ -62,4 +51,3 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
     </div>
   );
 };
-
