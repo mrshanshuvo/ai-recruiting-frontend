@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Check, Loader2, AlertCircle, Users, Sparkles, Clock, Send } from 'lucide-react';
+import { Check, Loader2, AlertCircle, Users, Sparkles, Clock, Send, ChevronLeft, ChevronRight, Edit3 } from 'lucide-react';
 import { CardWrapper } from './CardWrapper';
 import { CardStatus } from '../../types/chat';
 import { confirmAction, cancelAction, patchActionPayload } from '../../api/client';
@@ -12,6 +12,17 @@ export interface CampaignStepData {
   bodyTemplate: string;
 }
 
+export interface EnrolledCandidateData {
+  candidateId: string;
+  fullName: string;
+  currentTitle?: string;
+  currentCompany?: string;
+  email: string;
+  skills?: string[];
+  snippet?: string;
+  personalOpening?: string;
+}
+
 interface CampaignPreviewCardProps {
   actionId?: string;
   status: CardStatus;
@@ -22,11 +33,13 @@ interface CampaignPreviewCardProps {
     recipientCount: number;
     candidateIds?: string[];
     candidateNames?: string[];
+    candidates?: EnrolledCandidateData[];
     steps: CampaignStepData[];
     sampleCandidate?: {
       fullName?: string;
       currentTitle?: string;
       currentCompany?: string;
+      personalOpening?: string;
     };
   };
 }
@@ -39,6 +52,18 @@ export const CampaignPreviewCard: React.FC<CampaignPreviewCardProps> = ({
   const [status, setStatus] = useState<CardStatus>(initialStatus);
   const [activeStepIndex, setActiveStepIndex] = useState<number>(0);
   const [steps, setSteps] = useState<CampaignStepData[]>(payload.steps || []);
+  const [candidates, setCandidates] = useState<EnrolledCandidateData[]>(
+    payload.candidates ||
+      (payload.candidateNames || []).map((name, i) => ({
+        candidateId: (payload.candidateIds && payload.candidateIds[i]) || `cand-${i}`,
+        fullName: name,
+        email: 'candidate@example.com',
+        currentTitle: payload.sampleCandidate?.currentTitle || 'Engineer',
+        currentCompany: payload.sampleCandidate?.currentCompany || 'Company',
+        personalOpening: payload.sampleCandidate?.personalOpening || '',
+      }))
+  );
+  const [selectedCandidateIdx, setSelectedCandidateIdx] = useState<number>(0);
   const [isPreviewMode, setIsPreviewMode] = useState<boolean>(false);
   const [isConfirming, setIsConfirming] = useState<boolean>(false);
   const [isCancelling, setIsCancelling] = useState<boolean>(false);
@@ -54,24 +79,20 @@ export const CampaignPreviewCard: React.FC<CampaignPreviewCardProps> = ({
     bodyTemplate: '',
   };
 
-  const sampleCand = payload.sampleCandidate || {
-    fullName: (payload.candidateNames && payload.candidateNames[0]) || 'Alex Rivera',
-    currentTitle: 'Senior Software Engineer',
-    currentCompany: 'Tech Corp',
-  };
+  const currentCandidate =
+    candidates[selectedCandidateIdx] ||
+    payload.sampleCandidate || {
+      fullName: (payload.candidateNames && payload.candidateNames[0]) || 'Alex Rivera',
+      currentTitle: 'Senior Software Engineer',
+      currentCompany: 'Tech Corp',
+      personalOpening: '',
+    };
 
   // Debounced autosave per DEC-17
   const autosaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleStepFieldChange = (field: 'subject' | 'bodyTemplate', value: string) => {
-    if (!isPending) return;
-
-    const updatedSteps = steps.map((s, idx) =>
-      idx === activeStepIndex ? { ...s, [field]: value } : s
-    );
-    setSteps(updatedSteps);
-
-    if (!actionId) return;
+  const triggerAutosave = (updatedSteps: CampaignStepData[], updatedCandidates: EnrolledCandidateData[]) => {
+    if (!actionId || !isPending) return;
 
     setSaveStatus('saving');
     if (autosaveTimerRef.current) {
@@ -83,6 +104,7 @@ export const CampaignPreviewCard: React.FC<CampaignPreviewCardProps> = ({
         await patchActionPayload(actionId, {
           ...payload,
           steps: updatedSteps,
+          candidates: updatedCandidates,
         });
         setSaveStatus('saved');
         setTimeout(() => setSaveStatus('idle'), 2000);
@@ -91,6 +113,26 @@ export const CampaignPreviewCard: React.FC<CampaignPreviewCardProps> = ({
         setSaveStatus('idle');
       }
     }, 600);
+  };
+
+  const handleStepFieldChange = (field: 'subject' | 'bodyTemplate', value: string) => {
+    if (!isPending) return;
+
+    const updatedSteps = steps.map((s, idx) =>
+      idx === activeStepIndex ? { ...s, [field]: value } : s
+    );
+    setSteps(updatedSteps);
+    triggerAutosave(updatedSteps, candidates);
+  };
+
+  const handleCandidateOpeningChange = (candidateIdx: number, value: string) => {
+    if (!isPending) return;
+
+    const updatedCandidates = candidates.map((c, idx) =>
+      idx === candidateIdx ? { ...c, personalOpening: value } : c
+    );
+    setCandidates(updatedCandidates);
+    triggerAutosave(steps, updatedCandidates);
   };
 
   // Confirm campaign per DEC-21 ("Approve & Send")
@@ -103,19 +145,19 @@ export const CampaignPreviewCard: React.FC<CampaignPreviewCardProps> = ({
       const res = await confirmAction(actionId, {
         ...payload,
         steps,
+        candidates,
       });
       if (res.success) {
         setStatus('confirmed');
       }
     } catch (err: any) {
-      console.error('[CampaignPreviewCard] Confirm error:', err);
-      setErrorMessage(err.message || 'Failed to approve and launch campaign');
+      console.error('[CampaignPreviewCard] Confirmation error:', err);
+      setErrorMessage(err.message || 'Failed to confirm outreach campaign');
     } finally {
       setIsConfirming(false);
     }
   };
 
-  // Cancel campaign proposal
   const handleCancel = async () => {
     if (!actionId || !isPending) return;
     setIsCancelling(true);
@@ -135,14 +177,27 @@ export const CampaignPreviewCard: React.FC<CampaignPreviewCardProps> = ({
   };
 
   // Render preview interpolation
-  const getRenderedPreview = (text: string) => {
-    const firstName = sampleCand.fullName?.split(' ')[0] || sampleCand.fullName || 'Candidate';
-    return text
-      .replace(/\{\{candidateName\}\}/g, sampleCand.fullName || 'Candidate')
+  const getRenderedPreview = (text: string, cand: any) => {
+    const firstName = cand.fullName?.split(' ')[0] || cand.fullName || 'Candidate';
+    const opening = cand.personalOpening || '';
+    let body = text
+      .replace(/\{\{personalOpening\}\}/g, opening)
+      .replace(/\{\{candidateName\}\}/g, cand.fullName || 'Candidate')
       .replace(/\{\{firstName\}\}/g, firstName)
       .replace(/\{\{jobTitle\}\}/g, payload.jobTitle || 'Role')
-      .replace(/\{\{companyName\}\}/g, sampleCand.currentCompany || 'your team')
-      .replace(/\{\{currentTitle\}\}/g, sampleCand.currentTitle || 'Engineer');
+      .replace(/\{\{companyName\}\}/g, cand.currentCompany || 'your team')
+      .replace(/\{\{currentTitle\}\}/g, cand.currentTitle || 'Engineer');
+
+    if (opening && !text.includes('{{personalOpening}}') && activeStepIndex === 0) {
+      const greetingMatch = body.match(/^(Hi [^\n]+,\n\n)/);
+      if (greetingMatch) {
+        body = body.replace(greetingMatch[0], `${greetingMatch[0]}${opening}\n\n`);
+      } else {
+        body = `${opening}\n\n${body}`;
+      }
+    }
+
+    return body;
   };
 
   return (
@@ -222,7 +277,7 @@ export const CampaignPreviewCard: React.FC<CampaignPreviewCardProps> = ({
 
             <div>
               <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
-                Body Template (supports &#123;&#123;firstName&#125;&#125;, &#123;&#123;jobTitle&#125;&#125;, &#123;&#123;companyName&#125;&#125;)
+                Body Template (supports &#123;&#123;firstName&#125;&#125;, &#123;&#123;jobTitle&#125;&#125;, &#123;&#123;companyName&#125;&#125;, &#123;&#123;personalOpening&#125;&#125;)
               </label>
               <textarea
                 rows={6}
@@ -235,16 +290,72 @@ export const CampaignPreviewCard: React.FC<CampaignPreviewCardProps> = ({
             </div>
           </div>
         ) : (
-          <div className="space-y-2 bg-slate-50 p-3 rounded-lg border border-slate-200">
+          <div className="space-y-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
+            {/* Candidate Selector Switcher */}
+            {candidates.length > 1 && (
+              <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+                <span className="text-[11px] text-slate-600 font-medium">
+                  Preview candidate {selectedCandidateIdx + 1} of {candidates.length}
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    disabled={selectedCandidateIdx === 0}
+                    onClick={() => setSelectedCandidateIdx((i) => Math.max(i - 1, 0))}
+                    className="p-1 rounded hover:bg-slate-200 disabled:opacity-40 transition"
+                  >
+                    <ChevronLeft className="w-4 h-4 text-slate-600" />
+                  </button>
+                  <span className="font-semibold text-slate-800 px-1">
+                    {currentCandidate.fullName}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={selectedCandidateIdx === candidates.length - 1}
+                    onClick={() => setSelectedCandidateIdx((i) => Math.min(i + 1, candidates.length - 1))}
+                    className="p-1 rounded hover:bg-slate-200 disabled:opacity-40 transition"
+                  >
+                    <ChevronRight className="w-4 h-4 text-slate-600" />
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div className="text-[11px] text-slate-500 font-medium">
-              Sample preview for <span className="font-semibold text-slate-700">{sampleCand.fullName}</span> ({sampleCand.currentTitle} @ {sampleCand.currentCompany})
+              Sample preview for <span className="font-semibold text-slate-700">{currentCandidate.fullName}</span> ({currentCandidate.currentTitle} @ {currentCandidate.currentCompany || 'Company'})
             </div>
+
+            {/* Editable Personal Opening (Step 0) */}
+            {activeStepIndex === 0 && (
+              <div className="p-2.5 bg-white rounded border border-amber-200 bg-amber-50/30">
+                <div className="flex items-center justify-between mb-1 text-[11px] font-semibold text-amber-800">
+                  <span className="flex items-center gap-1">
+                    <Edit3 className="w-3 h-3 text-amber-600" />
+                    Personal Opening (Grounded in Stored Data)
+                  </span>
+                  {currentCandidate.personalOpening ? (
+                    <span className="text-[10px] text-emerald-600 font-normal">Grounded</span>
+                  ) : (
+                    <span className="text-[10px] text-slate-500 font-normal">No personal claim (thin data)</span>
+                  )}
+                </div>
+                <textarea
+                  rows={2}
+                  disabled={!isPending}
+                  value={currentCandidate.personalOpening || ''}
+                  onChange={(e) => handleCandidateOpeningChange(selectedCandidateIdx, e.target.value)}
+                  className="w-full px-2 py-1 text-xs rounded border border-slate-300 text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-sans"
+                  placeholder="No personal claim generated (plain template used)"
+                />
+              </div>
+            )}
+
             <div className="p-2.5 bg-white rounded border border-slate-200">
               <div className="font-semibold text-slate-800 mb-2 pb-1.5 border-b border-slate-100">
-                Subject: {getRenderedPreview(activeStep.subject)}
+                Subject: {getRenderedPreview(activeStep.subject, currentCandidate)}
               </div>
               <div className="whitespace-pre-wrap text-slate-700 leading-relaxed font-sans">
-                {getRenderedPreview(activeStep.bodyTemplate)}
+                {getRenderedPreview(activeStep.bodyTemplate, currentCandidate)}
               </div>
             </div>
           </div>
