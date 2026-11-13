@@ -1,0 +1,335 @@
+import React, { useState } from 'react';
+import {
+  Check,
+  X,
+  ExternalLink,
+  Loader2,
+  AlertCircle,
+  Database,
+  MailX,
+} from 'lucide-react';
+import { CardWrapper } from './CardWrapper';
+import { CardStatus } from '../../types/chat';
+import { confirmAction, cancelAction, updateCandidateStatus } from '../../api/client';
+
+export interface CandidateRow {
+  candidateId: string;
+  fullName: string;
+  currentTitle?: string;
+  currentCompany?: string;
+  score?: number | null;
+  scoreStatus?: 'pending' | 'scored' | 'failed';
+  scoreReason?: string;
+  profileUrl?: string | null;
+  status: string;
+  sourceMode?: string;
+  email?: string | null;
+  emailStatus?: string;
+}
+
+interface CandidateTableCardProps {
+  actionId?: string;
+  status: CardStatus;
+  payload: {
+    jobId?: string;
+    jobTitle?: string;
+    decision?: 'accept' | 'reject';
+    targetStatus?: string;
+    candidateIds?: string[];
+    reason?: string;
+    candidates?: CandidateRow[];
+  };
+}
+
+export const CandidateTableCard: React.FC<CandidateTableCardProps> = ({
+  actionId,
+  status,
+  payload,
+}) => {
+  const [candidates, setCandidates] = useState<CandidateRow[]>(payload.candidates || []);
+  const [rowLoading, setRowLoading] = useState<Record<string, boolean>>({});
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const isPending = status === 'pending';
+  const decision = payload.decision || 'accept';
+  const jobTitle = payload.jobTitle || 'Role';
+
+  // Direct row action (DEC-16): Recruiter clicks Accept or Reject on a candidate
+  const handleRowStatusChange = async (candidateId: string, newStatus: string) => {
+    setRowLoading((prev) => ({ ...prev, [candidateId]: true }));
+    setErrorMessage(null);
+
+    try {
+      await updateCandidateStatus(candidateId, newStatus, 'Direct recruiter table review');
+      // Update local row status state
+      setCandidates((prev) =>
+        prev.map((c) => (c.candidateId === candidateId ? { ...c, status: newStatus } : c))
+      );
+    } catch (err: any) {
+      console.error(`[CandidateTableCard] Failed to update candidate ${candidateId}:`, err);
+      setErrorMessage(err.message || 'Failed to update candidate status');
+    } finally {
+      setRowLoading((prev) => ({ ...prev, [candidateId]: false }));
+    }
+  };
+
+  // Card-level bulk confirm action
+  const handleBulkConfirm = async () => {
+    if (!actionId || !isPending) return;
+    setIsConfirming(true);
+    setErrorMessage(null);
+
+    try {
+      const res = await confirmAction(actionId);
+      if (res.success) {
+        const updatedStatus = decision === 'accept' ? 'Accepted' : 'Rejected';
+        setCandidates((prev) => prev.map((c) => ({ ...c, status: updatedStatus })));
+      }
+    } catch (err: any) {
+      console.error('[CandidateTableCard] Confirm failed:', err);
+      setErrorMessage(err.message || 'Failed to confirm bulk review');
+    } finally {
+      setIsConfirming(false);
+    }
+  };
+
+  // Card-level bulk cancel action
+  const handleBulkCancel = async () => {
+    if (!actionId || !isPending) return;
+    setIsCancelling(true);
+    setErrorMessage(null);
+
+    try {
+      await cancelAction(actionId, 'Recruiter cancelled bulk review proposal');
+    } catch (err: any) {
+      console.error('[CandidateTableCard] Cancel failed:', err);
+      setErrorMessage(err.message || 'Failed to cancel bulk review');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  const getScoreBadge = (score?: number | null, scoreStatus?: string) => {
+    if (scoreStatus === 'failed' || score === null || score === undefined) {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
+          Could not score
+        </span>
+      );
+    }
+    if (score >= 80) {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+          {score} / 100
+        </span>
+      );
+    }
+    if (score >= 60) {
+      return (
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+          {score} / 100
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-200">
+        {score} / 100
+      </span>
+    );
+  };
+
+  const getStatusBadge = (candStatus: string) => {
+    switch (candStatus) {
+      case 'Accepted':
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+            Accepted
+          </span>
+        );
+      case 'Rejected':
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-100 text-rose-800">
+            Rejected
+          </span>
+        );
+      case 'Contacted':
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
+            Contacted
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+            {candStatus}
+          </span>
+        );
+    }
+  };
+
+  return (
+    <CardWrapper
+      title={
+        actionId
+          ? `Bulk Candidate Review: ${decision.toUpperCase()} (${candidates.length})`
+          : `Candidate Review: ${jobTitle}`
+      }
+      status={status}
+    >
+      <div className="space-y-4">
+        {payload.reason && (
+          <p className="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+            <span className="font-semibold text-slate-700">Proposal reason:</span> {payload.reason}
+          </p>
+        )}
+
+        {errorMessage && (
+          <div className="flex items-center text-xs text-rose-600 bg-rose-50 p-2.5 rounded-lg border border-rose-200">
+            <AlertCircle className="w-4 h-4 mr-1.5 flex-shrink-0" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
+
+        <div className="overflow-x-auto border border-slate-200 rounded-lg">
+          <table className="min-w-full divide-y divide-slate-200 text-xs text-left">
+            <thead className="bg-slate-50 text-slate-600 font-semibold uppercase tracking-wider text-[11px]">
+              <tr>
+                <th className="px-3 py-2.5">Candidate</th>
+                <th className="px-3 py-2.5">Fit Score</th>
+                <th className="px-3 py-2.5">Reasoning</th>
+                <th className="px-3 py-2.5">Status</th>
+                <th className="px-3 py-2.5 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 bg-white">
+              {candidates.map((cand) => {
+                const isLoading = rowLoading[cand.candidateId];
+                const isFixture = cand.sourceMode === 'fixture';
+                const hasNoEmail = cand.emailStatus === 'missing' || !cand.email;
+
+                return (
+                  <tr key={cand.candidateId} className="hover:bg-slate-50/70 transition-colors">
+                    <td className="px-3 py-2.5">
+                      <div className="font-semibold text-slate-900 flex items-center gap-1.5">
+                        {cand.fullName}
+                        {cand.profileUrl && (
+                          <a
+                            href={cand.profileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-indigo-600 hover:text-indigo-800"
+                            title="View public profile"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+                      </div>
+                      <div className="text-slate-500 text-[11px]">
+                        {cand.currentTitle} {cand.currentCompany ? `@ ${cand.currentCompany}` : ''}
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        {isFixture && (
+                          <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-medium bg-purple-50 text-purple-700 border border-purple-200">
+                            <Database className="w-2.5 h-2.5 mr-0.5" />
+                            demo data
+                          </span>
+                        )}
+                        {hasNoEmail && (
+                          <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-medium bg-orange-50 text-orange-700 border border-orange-200">
+                            <MailX className="w-2.5 h-2.5 mr-0.5" />
+                            no email
+                          </span>
+                        )}
+                      </div>
+                    </td>
+
+                    <td className="px-3 py-2.5 whitespace-nowrap">
+                      {getScoreBadge(cand.score, cand.scoreStatus)}
+                    </td>
+
+                    <td className="px-3 py-2.5 text-slate-600 max-w-xs text-[11px]">
+                      {cand.scoreReason || 'Evaluated against job criteria'}
+                    </td>
+
+                    <td className="px-3 py-2.5 whitespace-nowrap">
+                      {getStatusBadge(cand.status)}
+                    </td>
+
+                    <td className="px-3 py-2.5 text-right whitespace-nowrap">
+                      <div className="inline-flex items-center gap-1">
+                        <button
+                          type="button"
+                          disabled={isLoading || cand.status === 'Accepted'}
+                          onClick={() => handleRowStatusChange(cand.candidateId, 'Accepted')}
+                          className={`p-1.5 rounded transition-colors ${
+                            cand.status === 'Accepted'
+                              ? 'bg-emerald-50 text-emerald-600 opacity-60 cursor-default'
+                              : 'text-slate-500 hover:bg-emerald-50 hover:text-emerald-700'
+                          }`}
+                          title="Accept Candidate"
+                        >
+                          {isLoading ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Check className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isLoading || cand.status === 'Rejected'}
+                          onClick={() => handleRowStatusChange(cand.candidateId, 'Rejected')}
+                          className={`p-1.5 rounded transition-colors ${
+                            cand.status === 'Rejected'
+                              ? 'bg-rose-50 text-rose-600 opacity-60 cursor-default'
+                              : 'text-slate-500 hover:bg-rose-50 hover:text-rose-700'
+                          }`}
+                          title="Reject Candidate"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Card-level Confirmation Footer (when actionId exists and is pending) */}
+        {actionId && isPending && (
+          <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-100">
+            <button
+              type="button"
+              disabled={isConfirming || isCancelling}
+              onClick={handleBulkCancel}
+              className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+            >
+              {isCancelling ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> : null}
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={isConfirming || isCancelling}
+              onClick={handleBulkConfirm}
+              className={`inline-flex items-center px-3.5 py-1.5 text-xs font-semibold text-white rounded-lg transition-colors ${
+                decision === 'reject'
+                  ? 'bg-rose-600 hover:bg-rose-700'
+                  : 'bg-emerald-600 hover:bg-emerald-700'
+              }`}
+            >
+              {isConfirming ? (
+                <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+              ) : (
+                <Check className="w-3.5 h-3.5 mr-1" />
+              )}
+              Confirm {decision === 'reject' ? 'Reject' : 'Accept'} ({candidates.length})
+            </button>
+          </div>
+        )}
+      </div>
+    </CardWrapper>
+  );
+};

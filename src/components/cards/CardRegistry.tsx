@@ -2,6 +2,7 @@ import React from 'react';
 import { ICardPart, SourcingProgress } from '../../types/chat';
 import { JobConfirmationCard } from './JobConfirmationCard';
 import { SourcingConfirmationCard } from './SourcingConfirmationCard';
+import { CandidateTableCard } from './CandidateTableCard';
 
 interface CardHostProps {
   cardPart: ICardPart;
@@ -28,6 +29,15 @@ export const CardHost: React.FC<CardHostProps> = ({ cardPart, sourcingProgress }
           status={card.status}
           payload={card.payload as any}
           progress={card.payload?.jobId ? sourcingProgress?.[card.payload.jobId] : undefined}
+        />
+      );
+
+    case 'candidate_table':
+      return (
+        <CandidateTableCard
+          actionId={card.actionId}
+          status={card.status}
+          payload={card.payload as any}
         />
       );
 

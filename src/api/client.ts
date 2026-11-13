@@ -115,3 +115,22 @@ export async function patchActionPayload(
 
   return res.json();
 }
+
+export async function updateCandidateStatus(
+  candidateId: string,
+  newStatus: string,
+  reason?: string
+): Promise<{ success: boolean; candidateId: string; previousStatus: string; newStatus: string }> {
+  const res = await fetch(`${API_BASE_URL}/api/candidates/${candidateId}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ newStatus, reason }),
+  });
+
+  if (!res.ok) {
+    const errorJson = await res.json().catch(() => ({}));
+    throw new Error(errorJson.error?.message || `Failed to update status: ${res.statusText}`);
+  }
+
+  return res.json();
+}
