@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { PlusCircle, Loader2, RefreshCw } from 'lucide-react';
-import { createConversation, sendMessage } from '../api/client';
+import { createConversation, sendMessage, API_BASE_URL } from '../api/client';
 import { useConversationStream } from '../hooks/useConversationStream';
 import { MessageBubble } from '../components/chat/MessageBubble';
 import { ChatInputBar } from '../components/chat/ChatInputBar';
@@ -79,6 +79,30 @@ export const ChatPage: React.FC = () => {
     }
   };
 
+  // 6. CSV Upload handler from chat paperclip per B6
+  const handleUploadCsv = async (file: File) => {
+    if (!routeConversationId) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/jobs`);
+      const data = await res.json();
+      if (!data.jobs || data.jobs.length === 0) {
+        alert('Please create or propose a job first before uploading candidates.');
+        return;
+      }
+      const targetJob = data.jobs[0];
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('conversationId', routeConversationId);
+
+      await fetch(`${API_BASE_URL}/api/jobs/${targetJob._id}/candidates/upload-csv`, {
+        method: 'POST',
+        body: formData,
+      });
+    } catch (err) {
+      console.error('[ChatPage] CSV Upload error:', err);
+    }
+  };
+
   if (!routeConversationId || isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center h-full">
@@ -126,7 +150,7 @@ export const ChatPage: React.FC = () => {
               Found <strong>{sourcingProgress.found}</strong>, scored <strong>{sourcingProgress.scored}</strong> / {sourcingProgress.total}
             </span>
           </div>
-          <span className="text-indigo-600 font-medium uppercase tracking-wider">{sourcingProgress.status}</span>
+          <span className="text-indigo-600 font-medium uppercase tracking-wider">In Progress</span>
         </div>
       )}
 
@@ -134,14 +158,22 @@ export const ChatPage: React.FC = () => {
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
         <div className="max-w-4xl mx-auto">
           {messages.map((msg) => (
-            <MessageBubble key={msg._id} message={msg} />
+            <MessageBubble
+              key={msg._id}
+              message={msg}
+              sourcingProgress={
+                sourcingProgress?.jobId
+                  ? { [sourcingProgress.jobId]: sourcingProgress }
+                  : undefined
+              }
+            />
           ))}
           <div ref={messagesEndRef} />
         </div>
       </div>
 
       {/* Chat Input Bar */}
-      <ChatInputBar onSendMessage={handleSendMessage} />
+      <ChatInputBar onSendMessage={handleSendMessage} onUploadCsv={handleUploadCsv} />
     </div>
   );
 };

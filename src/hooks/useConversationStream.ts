@@ -117,6 +117,7 @@ export function useConversationStream(conversationId: string | undefined) {
       try {
         const data = JSON.parse(e.data) as SourcingProgress;
         setSourcingProgress(data);
+        queryClient.invalidateQueries({ queryKey: ['candidates'] });
       } catch (err) {
         console.error('[SSE] Error handling SOURCING_PROGRESS:', err);
       }

@@ -1,12 +1,14 @@
 import React from 'react';
-import { ICardPart } from '../../types/chat';
+import { ICardPart, SourcingProgress } from '../../types/chat';
 import { JobConfirmationCard } from './JobConfirmationCard';
+import { SourcingConfirmationCard } from './SourcingConfirmationCard';
 
 interface CardHostProps {
   cardPart: ICardPart;
+  sourcingProgress?: Record<string, SourcingProgress>;
 }
 
-export const CardHost: React.FC<CardHostProps> = ({ cardPart }) => {
+export const CardHost: React.FC<CardHostProps> = ({ cardPart, sourcingProgress }) => {
   const { card } = cardPart;
 
   switch (card.cardType) {
@@ -16,6 +18,16 @@ export const CardHost: React.FC<CardHostProps> = ({ cardPart }) => {
           actionId={card.actionId}
           status={card.status}
           payload={card.payload}
+        />
+      );
+
+    case 'sourcing_confirmation':
+      return (
+        <SourcingConfirmationCard
+          actionId={card.actionId}
+          status={card.status}
+          payload={card.payload as any}
+          progress={card.payload?.jobId ? sourcingProgress?.[card.payload.jobId] : undefined}
         />
       );
 

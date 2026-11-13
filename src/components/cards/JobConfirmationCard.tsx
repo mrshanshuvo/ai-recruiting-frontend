@@ -179,20 +179,16 @@ export const JobConfirmationCard: React.FC<JobConfirmationCardProps> = ({
           </>
         ) : (
           <>
-            {formData.seniority && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">
-                <Briefcase className="w-3 h-3 mr-1" />
-                {formData.seniority}
-              </span>
-            )}
-            {formData.location && (
-              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">
-                <MapPin className="w-3 h-3 mr-1" />
-                {formData.location}
-              </span>
-            )}
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">
+              <Briefcase className="w-3 h-3 mr-1" />
+              {formData.seniority || 'Seniority: not provided'}
+            </span>
+            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">
+              <MapPin className="w-3 h-3 mr-1" />
+              {formData.location || 'Location: not provided'}
+            </span>
             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-50 text-indigo-700">
-              {formData.remotePolicy}
+              {formData.remotePolicy || 'not provided'}
             </span>
           </>
         )}
@@ -303,7 +299,7 @@ export const JobConfirmationCard: React.FC<JobConfirmationCardProps> = ({
           <span className="font-semibold text-slate-900">
             {formData.salaryMin && formData.salaryMax
               ? `$${Number(formData.salaryMin).toLocaleString()} - $${Number(formData.salaryMax).toLocaleString()} ${formData.salaryCurrency}`
-              : 'Not specified'}
+              : 'not provided'}
           </span>
         )}
       </div>

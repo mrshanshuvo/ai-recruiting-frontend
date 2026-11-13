@@ -1,7 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import { Bot, Briefcase } from 'lucide-react';
+import { Bot, Briefcase, Users } from 'lucide-react';
 import { ChatPage } from './pages/ChatPage';
+import { CandidatesPage } from './pages/CandidatesPage';
 
 export const App: React.FC = () => {
   return (
@@ -26,6 +27,13 @@ export const App: React.FC = () => {
             >
               <Bot className="w-4 h-4" />
               <span>Recruiter Chat</span>
+            </Link>
+            <Link
+              to="/candidates"
+              className="flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-100 hover:text-indigo-600 transition"
+            >
+              <Users className="w-4 h-4" />
+              <span>Candidates</span>
             </Link>
             <Link
               to="/jobs"
@@ -61,6 +69,7 @@ export const App: React.FC = () => {
             <Routes>
               <Route path="/" element={<ChatPage />} />
               <Route path="/chat/:id" element={<ChatPage />} />
+              <Route path="/candidates" element={<CandidatesPage />} />
               <Route
                 path="/jobs"
                 element={

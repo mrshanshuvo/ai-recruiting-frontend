@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2, Clock, XCircle, AlertCircle } from 'lucide-react';
+import { CheckCircle2, Clock, XCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { CardStatus } from '../../types/chat';
 
 interface CardWrapperProps {
@@ -11,6 +11,13 @@ interface CardWrapperProps {
 export const CardWrapper: React.FC<CardWrapperProps> = ({ title, status, children }) => {
   const getBadge = () => {
     switch (status) {
+      case 'in_progress':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200">
+            <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+            In Progress
+          </span>
+        );
       case 'confirmed':
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">

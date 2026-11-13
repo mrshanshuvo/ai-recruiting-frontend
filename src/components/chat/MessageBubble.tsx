@@ -1,13 +1,14 @@
 import React from 'react';
 import { Bot, User } from 'lucide-react';
-import { Message, ICardPart } from '../../types/chat';
+import { Message, ICardPart, SourcingProgress } from '../../types/chat';
 import { CardHost } from '../cards/CardRegistry';
 
 interface MessageBubbleProps {
   message: Message;
+  sourcingProgress?: Record<string, SourcingProgress>;
 }
 
-export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
+export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, sourcingProgress }) => {
   const isUser = message.role === 'user';
 
   return (
@@ -41,7 +42,13 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
             }
 
             if (part.type === 'card') {
-              return <CardHost key={index} cardPart={part as ICardPart} />;
+              return (
+                <CardHost
+                  key={index}
+                  cardPart={part as ICardPart}
+                  sourcingProgress={sourcingProgress}
+                />
+              );
             }
 
             return null;

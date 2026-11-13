@@ -10,7 +10,7 @@ export type CardType =
   | 'booking_link'
   | 'stats_summary';
 
-export type CardStatus = 'pending' | 'confirmed' | 'cancelled' | 'expired';
+export type CardStatus = 'pending' | 'confirmed' | 'cancelled' | 'expired' | 'in_progress';
 
 export interface ICardPart {
   type: 'card';
@@ -41,7 +41,7 @@ export interface SourcingProgress {
   jobId: string;
   found: number;
   scored: number;
+  failed?: number;
   total: number;
-  status: string;
 }
 
