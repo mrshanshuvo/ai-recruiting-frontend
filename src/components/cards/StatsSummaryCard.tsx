@@ -195,3 +195,4 @@ export const StatsSummaryCard: React.FC<StatsSummaryCardProps> = ({ payload }) =
     </div>
   );
 };
+
