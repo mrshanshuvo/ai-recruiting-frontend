@@ -21,15 +21,7 @@ import { API_BASE_URL } from '../api/client';
 interface JobStats {
   jobId: string;
   jobTitle: string;
-  totals: {
-    totalCandidates: number;
-    contacted: number;
-    replied: number;
-    interested: number;
-    meetings: number;
-    hires: number;
-  };
-  everReachedTotals?: {
+  everReached: {
     totalCandidates: number;
     contacted: number;
     replied: number;
@@ -43,8 +35,7 @@ interface JobStats {
     interestedRate: number | string;
     interestedRateFormatted: string;
   };
-  funnel: Record<string, number>;
-  currentStatusCounts?: Record<string, number>;
+  currentStatusCounts: Record<string, number>;
   sourceBreakdown: {
     fixture: number;
     csv: number;
@@ -184,8 +175,19 @@ export const JobDashboardPage: React.FC = () => {
     );
   }
 
-  const { totals, rates, funnel, sourceBreakdown, campaignSummary, tokenUsage } = stats;
-  const maxFunnelVal = Math.max(...Object.values(funnel), totals.totalCandidates, 1);
+  const everReached = stats.everReached || (stats as any).totals || {
+    totalCandidates: 0,
+    contacted: 0,
+    replied: 0,
+    interested: 0,
+    meetings: 0,
+    hires: 0,
+  };
+  const currentStatusCounts = stats.currentStatusCounts || (stats as any).funnel || {};
+  const totals = everReached;
+  const funnel = currentStatusCounts;
+  const { rates, sourceBreakdown, campaignSummary, tokenUsage } = stats;
+  const maxFunnelVal = Math.max(...Object.values(currentStatusCounts), everReached.totalCandidates, 1);
 
   return (
     <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-7xl mx-auto">

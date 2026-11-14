@@ -21,6 +21,20 @@ interface BookingData {
   availableSlots: string[];
 }
 
+function formatSlotWithLocal(slotUtcStr: string): { utc: string; local: string } {
+  const match = slotUtcStr.match(/(\w+),\s*(\w+)\s*(\d+),\s*(\d+)\s*at\s*(\d+:\d+)\s*UTC/);
+  if (match) {
+    const [, , month, day, year, time] = match;
+    const utcIso = `${month} ${day}, ${year} ${time}:00 UTC`;
+    const d = new Date(utcIso);
+    if (!isNaN(d.getTime())) {
+      const localTimeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+      return { utc: slotUtcStr, local: `(${localTimeStr} Local)` };
+    }
+  }
+  return { utc: slotUtcStr, local: '' };
+}
+
 export const MockBookingPage: React.FC = () => {
   const { token } = useParams<{ token: string }>();
   const [data, setData] = useState<BookingData | null>(null);
@@ -162,22 +176,26 @@ export const MockBookingPage: React.FC = () => {
               </div>
 
               <div className="space-y-2.5">
-                {data.availableSlots.map((slot) => (
-                  <button
-                    key={slot}
-                    disabled={submitting}
-                    onClick={() => handleSelectSlot(slot)}
-                    className="w-full text-left px-4 py-3 rounded-xl border border-slate-200 hover:border-indigo-600 hover:bg-indigo-50/50 hover:text-indigo-700 font-medium text-sm text-slate-700 transition flex items-center justify-between group disabled:opacity-50"
-                  >
-                    <span className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-slate-400 group-hover:text-indigo-600" />
-                      {slot}
-                    </span>
-                    <span className="text-xs text-indigo-600 font-semibold opacity-0 group-hover:opacity-100 transition">
-                      Confirm &rarr;
-                    </span>
-                  </button>
-                ))}
+                {data.availableSlots.map((slot) => {
+                  const { local } = formatSlotWithLocal(slot);
+                  return (
+                    <button
+                      key={slot}
+                      disabled={submitting}
+                      onClick={() => handleSelectSlot(slot)}
+                      className="w-full text-left px-4 py-3 rounded-xl border border-slate-200 hover:border-indigo-600 hover:bg-indigo-50/50 hover:text-indigo-700 font-medium text-sm text-slate-700 transition flex items-center justify-between group disabled:opacity-50"
+                    >
+                      <span className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-slate-400 group-hover:text-indigo-600" />
+                        <span>{slot}</span>
+                        {local && <span className="text-xs text-slate-500 font-normal">{local}</span>}
+                      </span>
+                      <span className="text-xs text-indigo-600 font-semibold opacity-0 group-hover:opacity-100 transition">
+                        Confirm &rarr;
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}

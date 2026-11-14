@@ -7,6 +7,7 @@ export function useConversationStream(conversationId: string | undefined) {
   const queryClient = useQueryClient();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isReconnecting, setIsReconnecting] = useState<boolean>(false);
   const [sourcingProgress, setSourcingProgress] = useState<SourcingProgress | null>(null);
 
   // Load initial history
@@ -27,20 +28,36 @@ export function useConversationStream(conversationId: string | undefined) {
     reloadHistory();
   }, [reloadHistory]);
 
-  // Connect SSE
+  // Connect SSE with exponential reconnection backoff (1s, 2s, 4s, 8s, up to 10s)
   useEffect(() => {
     if (!conversationId) return;
 
-    const streamUrl = `${API_BASE_URL}/api/chat/stream/${conversationId}`;
-    const eventSource = new EventSource(streamUrl);
+    let eventSource: EventSource | null = null;
+    let isDisposed = false;
+    let reconnectAttempt = 0;
+    const backoffDelays = [1000, 2000, 4000, 8000, 10000];
 
-    eventSource.onopen = () => {
-      console.log('[SSE] Connection opened:', streamUrl);
-    };
+    function connect() {
+      if (isDisposed) return;
+      const streamUrl = `${API_BASE_URL}/api/chat/stream/${conversationId}`;
+      eventSource = new EventSource(streamUrl);
 
-    eventSource.onerror = (err) => {
-      console.warn('[SSE] EventSource encountered error/reconnecting:', err);
-    };
+      eventSource.onopen = () => {
+        console.log('[SSE] Connection established:', streamUrl);
+        if (reconnectAttempt > 0) {
+          // Refetch messages after reconnection to sync missed events
+          reloadHistory();
+        }
+        setIsReconnecting(false);
+        reconnectAttempt = 0;
+      };
+
+      eventSource.onerror = (err) => {
+        setIsReconnecting(true);
+        const delay = backoffDelays[Math.min(reconnectAttempt, backoffDelays.length - 1)];
+        console.warn(`[SSE] Disconnected. Reconnecting with exponential backoff: ${delay}ms (attempt ${reconnectAttempt + 1})`, err);
+        reconnectAttempt++;
+      };
 
     // 1. Text deltas during streaming agent responses
     eventSource.addEventListener('CHAT_DELTA', (e: MessageEvent) => {
@@ -53,7 +70,7 @@ export function useConversationStream(conversationId: string | undefined) {
               ...prev,
               {
                 _id: messageId,
-                conversationId,
+                conversationId: conversationId || '',
                 role: 'assistant',
                 parts: [{ type: 'text', text: delta }],
                 createdAt: new Date().toISOString(),
@@ -94,7 +111,7 @@ export function useConversationStream(conversationId: string | undefined) {
               ...prev,
               {
                 _id: messageId,
-                conversationId,
+                conversationId: conversationId || '',
                 role: 'assistant',
                 parts: [part],
                 createdAt: new Date().toISOString(),
@@ -160,17 +177,24 @@ export function useConversationStream(conversationId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['candidates'] });
       queryClient.invalidateQueries({ queryKey: ['jobStats'] });
     });
+    }
+
+    connect();
 
     return () => {
-      console.log('[SSE] Closing EventSource connection');
-      eventSource.close();
+      isDisposed = true;
+      if (eventSource) {
+        console.log('[SSE] Closing EventSource connection');
+        eventSource.close();
+      }
     };
-  }, [conversationId, queryClient]);
+  }, [conversationId, queryClient, reloadHistory]);
 
   return {
     messages,
     setMessages,
     isLoading,
+    isReconnecting,
     sourcingProgress,
     reloadHistory,
   };

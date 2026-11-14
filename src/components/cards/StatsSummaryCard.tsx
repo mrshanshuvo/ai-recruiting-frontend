@@ -5,7 +5,7 @@ import { BarChart3, Users, Mail, Calendar, CheckCircle2, DollarSign, ArrowUpRigh
 interface StatsSummaryPayload {
   jobId: string;
   jobTitle: string;
-  totals: {
+  everReached: {
     totalCandidates: number;
     contacted: number;
     replied: number;
@@ -19,7 +19,7 @@ interface StatsSummaryPayload {
     interestedRate: number | string;
     interestedRateFormatted: string;
   };
-  funnel: Record<string, number>;
+  currentStatusCounts: Record<string, number>;
   sourceBreakdown?: {
     fixture: number;
     csv: number;
@@ -59,7 +59,7 @@ const FUNNEL_STAGES = [
 ];
 
 export const StatsSummaryCard: React.FC<StatsSummaryCardProps> = ({ payload }) => {
-  const totals = payload.totals || {
+  const everReached = payload.everReached || (payload as any).totals || {
     totalCandidates: 0,
     contacted: 0,
     replied: 0,
@@ -71,8 +71,8 @@ export const StatsSummaryCard: React.FC<StatsSummaryCardProps> = ({ payload }) =
     replyRateFormatted: 'n/a',
     interestedRateFormatted: 'n/a',
   };
-  const funnel = payload.funnel || {};
-  const maxFunnelVal = Math.max(...Object.values(funnel), totals.totalCandidates, 1);
+  const currentStatusCounts = payload.currentStatusCounts || (payload as any).funnel || {};
+  const maxFunnelVal = Math.max(...Object.values(currentStatusCounts), everReached.totalCandidates, 1);
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4 my-2 max-w-2xl">
@@ -108,7 +108,7 @@ export const StatsSummaryCard: React.FC<StatsSummaryCardProps> = ({ payload }) =
             <Users className="w-3.5 h-3.5 text-slate-400" />
             <span>Candidates</span>
           </div>
-          <div className="text-lg font-bold text-slate-800 mt-0.5">{totals.totalCandidates}</div>
+          <div className="text-lg font-bold text-slate-800 mt-0.5">{everReached.totalCandidates}</div>
           <div className="text-[10px] text-slate-400 mt-0.5">Sourced & ingested</div>
         </div>
 
@@ -117,7 +117,7 @@ export const StatsSummaryCard: React.FC<StatsSummaryCardProps> = ({ payload }) =
             <Mail className="w-3.5 h-3.5 text-indigo-500" />
             <span>Contacted</span>
           </div>
-          <div className="text-lg font-bold text-slate-800 mt-0.5">{totals.contacted}</div>
+          <div className="text-lg font-bold text-slate-800 mt-0.5">{everReached.contacted}</div>
           <div className="text-[10px] text-slate-400 mt-0.5">Sequence enrolled</div>
         </div>
 
@@ -127,7 +127,7 @@ export const StatsSummaryCard: React.FC<StatsSummaryCardProps> = ({ payload }) =
             <span>Reply Rate</span>
           </div>
           <div className="text-lg font-bold text-slate-800 mt-0.5">{rates.replyRateFormatted}</div>
-          <div className="text-[10px] text-slate-400 mt-0.5">{totals.replied} candidate replies</div>
+          <div className="text-[10px] text-slate-400 mt-0.5">{everReached.replied} candidate replies</div>
         </div>
 
         <div className="bg-slate-50 border border-slate-100 rounded-lg p-2.5">
@@ -136,7 +136,7 @@ export const StatsSummaryCard: React.FC<StatsSummaryCardProps> = ({ payload }) =
             <span>Interested Rate</span>
           </div>
           <div className="text-lg font-bold text-emerald-700 mt-0.5">{rates.interestedRateFormatted}</div>
-          <div className="text-[10px] text-slate-400 mt-0.5">{totals.interested} positive replies</div>
+          <div className="text-[10px] text-slate-400 mt-0.5">{everReached.interested} positive replies</div>
         </div>
 
         <div className="bg-slate-50 border border-slate-100 rounded-lg p-2.5">
@@ -144,7 +144,7 @@ export const StatsSummaryCard: React.FC<StatsSummaryCardProps> = ({ payload }) =
             <Calendar className="w-3.5 h-3.5 text-teal-500" />
             <span>Meetings</span>
           </div>
-          <div className="text-lg font-bold text-slate-800 mt-0.5">{totals.meetings}</div>
+          <div className="text-lg font-bold text-slate-800 mt-0.5">{everReached.meetings}</div>
           <div className="text-[10px] text-slate-400 mt-0.5">Booked conversations</div>
         </div>
 
@@ -153,7 +153,7 @@ export const StatsSummaryCard: React.FC<StatsSummaryCardProps> = ({ payload }) =
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
             <span>Hired</span>
           </div>
-          <div className="text-lg font-bold text-emerald-700 mt-0.5">{totals.hires}</div>
+          <div className="text-lg font-bold text-emerald-700 mt-0.5">{everReached.hires}</div>
           <div className="text-[10px] text-slate-400 mt-0.5">Final hires made</div>
         </div>
       </div>
@@ -163,7 +163,7 @@ export const StatsSummaryCard: React.FC<StatsSummaryCardProps> = ({ payload }) =
         <div className="text-xs font-semibold text-slate-700">Pipeline Stage Funnel</div>
         <div className="space-y-1.5 bg-slate-50/50 p-3 rounded-lg border border-slate-100">
           {FUNNEL_STAGES.map((st) => {
-            const count = funnel[st.key] || 0;
+            const count = currentStatusCounts[st.key] || 0;
             const percent = Math.round((count / maxFunnelVal) * 100);
             return (
               <div key={st.key} className="flex items-center text-xs">

@@ -68,9 +68,11 @@ export const BookingLinkCard: React.FC<BookingLinkCardProps> = ({ actionId, stat
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-100 text-purple-800 border border-purple-200">
-              {payload.replyClass || 'Wants a meeting'}
-            </span>
+            {payload.replyClass && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-purple-100 text-purple-800 border border-purple-200">
+                {payload.replyClass}
+              </span>
+            )}
             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-800">
               <Calendar className="w-3 h-3 mr-1" /> 15m Chat
             </span>

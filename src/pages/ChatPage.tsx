@@ -38,7 +38,7 @@ export const ChatPage: React.FC = () => {
   }, [routeConversationId, searchParams, navigate]);
 
   // 2. Stream and messages hook
-  const { messages, setMessages, isLoading, sourcingProgress, reloadHistory } =
+  const { messages, setMessages, isLoading, isReconnecting, sourcingProgress, reloadHistory } =
     useConversationStream(routeConversationId);
 
   // 3. Auto-scroll on new messages
@@ -124,6 +124,12 @@ export const ChatPage: React.FC = () => {
         <div className="flex items-center space-x-2 text-xs text-slate-500">
           <span>Conversation ID:</span>
           <code className="bg-slate-100 px-2 py-0.5 rounded text-slate-700">{routeConversationId}</code>
+          {isReconnecting && (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800 border border-amber-200 animate-pulse">
+              <Loader2 className="w-3 h-3 mr-1 animate-spin text-amber-600" />
+              Reconnecting...
+            </span>
+          )}
         </div>
         <div className="flex items-center space-x-2">
           <button

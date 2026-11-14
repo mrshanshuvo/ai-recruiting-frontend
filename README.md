@@ -26,10 +26,15 @@ npm run build
 ```
 
 ### Option B: Standalone Docker Container (Nginx)
+The standalone frontend container runs Nginx to serve the SPA and proxies API requests (`/api/`, `/health`, `/simulate-reply`) to the backend. Because the Nginx container runs isolated, it uses Docker's `extra_hosts: ["api:host-gateway"]` to route API traffic to the host machine where the backend runs.
+
+**Prerequisite**: The backend API must be running first on the host at `http://localhost:4000` (via `npm run dev` in `apps/backend` or the backend stack).
+
 ```bash
+# Build and launch standalone frontend container on port 5173
 docker compose up --build -d
 ```
-The application will be served at `http://localhost:5173` (and `http://localhost:80`).
+The application will be served at `http://localhost:5173`. Nginx automatically proxies `/api/` and SSE streams to `http://api:4000/` on the host gateway.
 
 ## Environment Variables
 
