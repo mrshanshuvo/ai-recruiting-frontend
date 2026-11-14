@@ -13,7 +13,7 @@ import {
   Send,
   Clock,
 } from 'lucide-react';
-import { API_BASE_URL, simulateReply, updateCandidateStatus } from '../api/client';
+import { API_BASE_URL, retryCandidateClassification, simulateReply, updateCandidateStatus } from '../api/client';
 
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   Sourced: ['Accepted', 'Rejected'],
@@ -70,6 +70,7 @@ interface Candidate {
   missingInfo: string[];
   scoreMissingInfo?: string[];
   status: string;
+  needsReview?: boolean;
   createdAt: string;
 }
 
@@ -106,6 +107,21 @@ export const CandidatesPage: React.FC = () => {
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [drawerTargetStatus, setDrawerTargetStatus] = useState('');
   const [drawerReason, setDrawerReason] = useState('');
+  const [isRetryingClassification, setIsRetryingClassification] = useState(false);
+
+  const handleRetryClassification = async (candidateId: string) => {
+    try {
+      setIsRetryingClassification(true);
+      const res = await retryCandidateClassification(candidateId);
+      if (res.success) {
+        alert('Reply classification successfully re-enqueued for candidate.');
+      }
+    } catch (err: any) {
+      alert(`Retry failed: ${err.message || 'Operation failed'}`);
+    } finally {
+      setIsRetryingClassification(false);
+    }
+  };
 
   const handleSelectCandidate = async (cand: Candidate) => {
     setSelectedCandidate(cand);
@@ -484,9 +500,17 @@ export const CandidatesPage: React.FC = () => {
                         )}
                       </td>
                       <td className="px-5 py-3.5">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">
-                          {c.status}
-                        </span>
+                        <div className="flex flex-col items-start gap-1">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">
+                            {c.status}
+                          </span>
+                          {c.needsReview && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800 border border-amber-300">
+                              <AlertTriangle className="w-3 h-3 mr-1 text-amber-600" />
+                              Needs review
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-5 py-3.5 text-right whitespace-nowrap">
                         <div className="inline-flex items-center gap-2">
@@ -563,6 +587,36 @@ export const CandidatesPage: React.FC = () => {
             </div>
 
             <div className="space-y-5 text-xs text-slate-700">
+              {/* Needs Review Alert Banner (A7) */}
+              {selectedCandidate.needsReview && (
+                <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-lg flex items-center justify-between">
+                  <div className="flex items-center space-x-2 text-amber-800">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                    <div>
+                      <span className="font-semibold block text-xs">Needs Recruiter Review</span>
+                      <span className="text-[11px] text-amber-700">
+                        Inbound reply could not be classified with certainty or triggered security review.
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRetryClassification(selectedCandidate._id)}
+                    disabled={isRetryingClassification}
+                    className="ml-3 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded font-medium text-xs flex items-center shadow-sm disabled:opacity-50 whitespace-nowrap"
+                  >
+                    {isRetryingClassification ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />
+                        Retrying...
+                      </>
+                    ) : (
+                      'Retry classification'
+                    )}
+                  </button>
+                </div>
+              )}
+
               {/* Score and Source Badges */}
               <div className="flex items-center space-x-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
                 <div>

@@ -29,6 +29,7 @@ interface StatsSummaryPayload {
     campaignsCount: number;
     sentMessages: number;
     queuedMessages: number;
+    cancelledMessages?: number;
     isPaused: boolean;
   };
   tokenUsage?: {

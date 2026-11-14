@@ -155,3 +155,19 @@ export async function simulateReply(data: {
 
   return res.json();
 }
+
+export async function retryCandidateClassification(
+  candidateId: string
+): Promise<{ success: boolean; message: string; jobId?: string }> {
+  const res = await fetch(`${API_BASE_URL}/api/candidates/${candidateId}/retry-classification`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  if (!res.ok) {
+    const errorJson = await res.json().catch(() => ({}));
+    throw new Error(errorJson.error?.message || `Failed to retry classification: ${res.statusText}`);
+  }
+
+  return res.json();
+}

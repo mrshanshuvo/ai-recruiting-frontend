@@ -45,6 +45,7 @@ interface JobStats {
     campaignsCount: number;
     sentMessages: number;
     queuedMessages: number;
+    cancelledMessages?: number;
     isPaused: boolean;
   };
   tokenUsage: {
@@ -387,6 +388,10 @@ export const JobDashboardPage: React.FC = () => {
               <div className="flex items-center justify-between text-xs text-slate-600 mt-1">
                 <span>Queued Follow-ups:</span>
                 <strong className="text-slate-800">{campaignSummary.queuedMessages}</strong>
+              </div>
+              <div className="flex items-center justify-between text-xs text-slate-600 mt-1">
+                <span>Cancelled Messages:</span>
+                <strong className="text-slate-800">{campaignSummary.cancelledMessages ?? 0}</strong>
               </div>
             </div>
           </div>
