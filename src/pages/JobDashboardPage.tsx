@@ -29,6 +29,14 @@ interface JobStats {
     meetings: number;
     hires: number;
   };
+  everReachedTotals?: {
+    totalCandidates: number;
+    contacted: number;
+    replied: number;
+    interested: number;
+    meetings: number;
+    hires: number;
+  };
   rates: {
     replyRate: number | string;
     replyRateFormatted: string;
@@ -36,6 +44,7 @@ interface JobStats {
     interestedRateFormatted: string;
   };
   funnel: Record<string, number>;
+  currentStatusCounts?: Record<string, number>;
   sourceBreakdown: {
     fixture: number;
     csv: number;
@@ -314,14 +323,14 @@ export const JobDashboardPage: React.FC = () => {
             <div>
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                 <Layers className="w-4 h-4 text-indigo-600" />
-                Recruitment Pipeline Funnel
+                Pipeline Funnel (Current Status Distribution)
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                Distribution of all {totals.totalCandidates} candidates across all 12 pipeline stages
+                Current candidate count across all 12 pipeline stages
               </p>
             </div>
             <span className="text-xs font-semibold text-slate-500 bg-slate-50 px-2.5 py-1 rounded-md border border-slate-100">
-              Active Funnel
+              Current Status Counts
             </span>
           </div>
 

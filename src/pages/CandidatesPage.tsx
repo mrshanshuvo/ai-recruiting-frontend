@@ -37,6 +37,11 @@ const PRESET_REPLIES = [
     text: "Hi, thanks for reaching out! The role at Aironauts sounds very interesting. I'd love to learn more about what your team is building.",
   },
   {
+    label: 'Not interested',
+    badge: 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200',
+    text: 'Thanks for reaching out, but I am currently very happy at my current role and not looking to make a switch right now.',
+  },
+  {
     label: 'Question',
     badge: 'bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100',
     text: 'Could you share more details about the salary range, tech stack, and remote work policy for this role?',
